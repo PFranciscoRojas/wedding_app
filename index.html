@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Photo</title>
+</head>
+<body>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="photo" accept="image/*">
+        <input type="hidden" name="token" value="your_token_here"> <!-- Aquí debes incluir el token -->
+        <button type="submit">Upload</button>
+    </form>
+    <a href="/auth">Authenticate with Google</a>
+</body>
+</html>

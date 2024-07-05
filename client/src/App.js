@@ -1,6 +1,8 @@
 import React from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PhotoUploader from './components/PhotoUploader';
+import QRCode from './components/QRCode';
 
 const theme = createTheme({
   palette: {
@@ -58,7 +60,12 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <PhotoUploader />
+      <Router>
+        <Routes>
+          <Route path="/" element={<PhotoUploader />} />
+          <Route path="/qr" element={<QRCode />} />
+        </Routes>
+      </Router>
     </ThemeProvider>
   );
 }

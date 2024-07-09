@@ -2,7 +2,9 @@ const QRCode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 
-async function generateQR(url) {
+const APP_URL = process.env.APP_URL || 'http://localhost:8080';
+
+async function generateQR() {
   const publicDir = path.join(__dirname, '../../public');
   const outputPath = path.join(publicDir, 'wedding-photos-qr.png');
   
@@ -12,7 +14,7 @@ async function generateQR(url) {
   }
 
   try {
-    await QRCode.toFile(outputPath, url, {
+    await QRCode.toFile(outputPath, APP_URL, {
       color: {
         dark: '#D4A5A5',  // Color palo de rosa
         light: '#FFFFFF'  // Fondo blanco

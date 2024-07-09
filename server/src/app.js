@@ -1,27 +1,24 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./routes/auth');
 const photosRoutes = require('./routes/photos');
-const generateQR = require('./utils/generateQR');
+const cors = require('cors');
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// Asegúrate de que este path sea correcto
-app.use(express.static(path.join(__dirname, '../public')));
+// Sirve los archivos estáticos del build de React
+app.use(express.static(path.join(__dirname, '../../client/build')));
 
-app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/photos', photosRoutes);
 
-// Generar código QR
-const APP_URL = 'http://localhost:3000';  // Cambia esto a la URL de tu aplicación en producción
-generateQR(APP_URL).then(qrPath => {
-  app.get('/qr', (req, res) => {
-    res.json({ qrPath });
-  });
-}).catch(console.error);
+// Maneja cualquier solicitud que no coincida con las rutas anteriores
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/build', 'index.html'));
+});
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

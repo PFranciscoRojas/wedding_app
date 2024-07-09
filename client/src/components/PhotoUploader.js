@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { 
@@ -11,8 +12,7 @@ import {
   Card, 
   CardMedia, 
   IconButton,
-  TextField,
-  Paper
+  TextField
 } from '@mui/material';
 import { CloudUpload, Delete } from '@mui/icons-material';
 
@@ -24,6 +24,18 @@ function PhotoUploader() {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('access_token');
+    if (token) {
+      setAccessToken(token);
+      localStorage.setItem('accessToken', token);
+      // Opcionalmente, puedes limpiar los parámetros de la URL aquí
+    }
+  }, [location]);
 
   const onDrop = useCallback(acceptedFiles => {
     setFiles(prevFiles => [...prevFiles, ...acceptedFiles]);
@@ -54,18 +66,26 @@ function PhotoUploader() {
       return;
     }
 
+   const token = accessToken || localStorage.getItem('accessToken');
+    if (!token) {
+      setMessage('No hay token de acceso. Por favor, inicia sesión nuevamente.');
+      return;
+    }
+
     setUploading(true);
     setMessage('');
     setProgress(0);
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://wedding-photo-app-c2vxztagma-uc.a.run.app';
 
     for (let i = 0; i < files.length; i++) {
       const formData = new FormData();
       formData.append('photo', files[i]);
       formData.append('albumTitle', ALBUM_TITLE);
       formData.append('uploaderName', uploaderName);
+      formData.append('accessToken', accessToken);
 
       try {
-        await axios.post('http://localhost:5001/api/photos/upload', formData, {
+        await axios.post(`${apiUrl}/api/photos/upload`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -88,12 +108,12 @@ function PhotoUploader() {
 
   return (
     <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 4, mt: 4, backgroundColor: 'background.paper', borderRadius: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center" color="primary">
-          Fotos Boda Marcela y Pacho
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center">
+          Sube tus fotos de boda
         </Typography>
-        <Typography variant="h6" component="h2" gutterBottom align="center" color="text.secondary">
-          {ALBUM_TITLE}
+        <Typography variant="h6" component="h2" gutterBottom align="center">
+          Álbum: {ALBUM_TITLE}
         </Typography>
         <TextField
           fullWidth
@@ -108,29 +128,28 @@ function PhotoUploader() {
         <Box 
           {...getRootProps()} 
           sx={{
-            border: '2px dashed',
-            borderColor: 'primary.main',
-            borderRadius: 4,
+            border: '2px dashed #eeeeee',
+            borderRadius: 2,
             p: 2,
             mt: 2,
             textAlign: 'center',
             cursor: 'pointer',
             '&:hover': {
-              backgroundColor: 'rgba(212, 165, 165, 0.1)'
+              backgroundColor: '#fafafa'
             }
           }}
         >
           <input {...getInputProps()} />
           {
             isDragActive ?
-              <Typography color="primary">Suelta las fotos aquí ...</Typography> :
-              <Typography color="text.secondary">Arrastra y suelta algunas fotos aquí, o haz clic para seleccionar fotos</Typography>
+              <Typography>Suelta las fotos aquí ...</Typography> :
+              <Typography>Arrastra y suelta algunas fotos aquí, o haz clic para seleccionar fotos</Typography>
           }
         </Box>
         <Grid container spacing={2} sx={{ mt: 2 }}>
           {files.map((file, index) => (
             <Grid item xs={4} key={index}>
-              <Card sx={{ position: 'relative' }}>
+              <Card>
                 <CardMedia
                   component="img"
                   height="140"
@@ -140,16 +159,7 @@ function PhotoUploader() {
                 <IconButton 
                   size="small" 
                   onClick={() => removeFile(file)}
-                  sx={{ 
-                    position: 'absolute', 
-                    top: 5, 
-                    right: 5, 
-                    color: 'white', 
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(0,0,0,0.5)'
-                    }
-                  }}
+                  sx={{ position: 'absolute', top: 0, right: 0, color: 'white', backgroundColor: 'rgba(0,0,0,0.3)' }}
                 >
                   <Delete />
                 </IconButton>
@@ -180,7 +190,7 @@ function PhotoUploader() {
             {message}
           </Typography>
         )}
-      </Paper>
+      </Box>
     </Container>
   );
 }

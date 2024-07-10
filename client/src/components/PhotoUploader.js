@@ -1,51 +1,34 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { 
-  Button, 
-  Container, 
-  Typography, 
-  Box, 
-  LinearProgress, 
-  Grid, 
-  Card, 
-  CardMedia, 
+import {
+  Button,
+  Container,
+  Typography,
+  Box,
+  LinearProgress,
+  Grid,
+  Card,
+  CardMedia,
   IconButton,
-  TextField
+  TextField,
+  Paper,
+  CardActions
 } from '@mui/material';
 import { CloudUpload, Delete } from '@mui/icons-material';
 
-const ALBUM_TITLE = 'Fotos de Boda';
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 function PhotoUploader() {
   const [files, setFiles] = useState([]);
   const [uploaderName, setUploaderName] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState({});
   const [message, setMessage] = useState('');
-  const [accessToken, setAccessToken] = useState('');
-  const location = useLocation();
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('access_token');
-    if (token) {
-      setAccessToken(token);
-      localStorage.setItem('accessToken', token);
-      // Opcionalmente, puedes limpiar los parámetros de la URL aquí
-    }
-  }, [location]);
-
-  const onDrop = useCallback(acceptedFiles => {
-    setFiles(prevFiles => [...prevFiles, ...acceptedFiles]);
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
-    onDrop,
-    accept: 'image/*',
-    multiple: true
-  });
+  const handleFileChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+    setFiles(prevFiles => [...prevFiles, ...newFiles]);
+  };
 
   const handleUploaderNameChange = (e) => {
     setUploaderName(e.target.value);
@@ -66,54 +49,42 @@ function PhotoUploader() {
       return;
     }
 
-   const token = accessToken || localStorage.getItem('accessToken');
-    if (!token) {
-      setMessage('No hay token de acceso. Por favor, inicia sesión nuevamente.');
-      return;
-    }
-
     setUploading(true);
     setMessage('');
-    setProgress(0);
-    const apiUrl = process.env.REACT_APP_API_URL || 'https://wedding-photo-app-c2vxztagma-uc.a.run.app';
+    setProgress({});
 
     for (let i = 0; i < files.length; i++) {
       const formData = new FormData();
       formData.append('photo', files[i]);
-      formData.append('albumTitle', ALBUM_TITLE);
       formData.append('uploaderName', uploaderName);
-      formData.append('accessToken', accessToken);
 
       try {
-        await axios.post(`${apiUrl}/api/photos/upload`, formData, {
+        const response = await axios.post(`${API_URL}/photos/upload`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setProgress(percentCompleted);
+            setProgress(prev => ({...prev, [i]: percentCompleted}));
           }
         });
-        setProgress(((i + 1) / files.length) * 100);
+        console.log(`Foto ${i + 1} subida con éxito:`, response.data);
       } catch (error) {
-        console.error('Error al subir la foto:', error);
+        console.error(`Error al subir la foto ${i + 1}:`, error);
         setMessage(`Error al subir la foto ${files[i].name}: ${error.message}`);
       }
     }
 
-    setMessage('Todas las fotos han sido subidas con éxito');
     setUploading(false);
+    setMessage('Todas las fotos han sido subidas con éxito');
     setFiles([]);
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Sube tus fotos de boda
-        </Typography>
-        <Typography variant="h6" component="h2" gutterBottom align="center">
-          Álbum: {ALBUM_TITLE}
+    <Container maxWidth="md">
+      <Paper elevation={3} sx={{ p: 4, mt: 4, backgroundColor: 'background.paper', borderRadius: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center" color="primary">
+          Nuestro Álbum de Boda
         </Typography>
         <TextField
           fullWidth
@@ -125,30 +96,22 @@ function PhotoUploader() {
           disabled={uploading}
           required
         />
-        <Box 
-          {...getRootProps()} 
-          sx={{
-            border: '2px dashed #eeeeee',
-            borderRadius: 2,
-            p: 2,
-            mt: 2,
-            textAlign: 'center',
-            cursor: 'pointer',
-            '&:hover': {
-              backgroundColor: '#fafafa'
-            }
-          }}
-        >
-          <input {...getInputProps()} />
-          {
-            isDragActive ?
-              <Typography>Suelta las fotos aquí ...</Typography> :
-              <Typography>Arrastra y suelta algunas fotos aquí, o haz clic para seleccionar fotos</Typography>
-          }
-        </Box>
+        <input
+          accept="image/*"
+          style={{ display: 'none' }}
+          id="raised-button-file"
+          multiple
+          type="file"
+          onChange={handleFileChange}
+        />
+        <label htmlFor="raised-button-file">
+          <Button variant="contained" component="span" fullWidth sx={{ mt: 2 }}>
+            Seleccionar Fotos
+          </Button>
+        </label>
         <Grid container spacing={2} sx={{ mt: 2 }}>
           {files.map((file, index) => (
-            <Grid item xs={4} key={index}>
+            <Grid item xs={12} sm={6} md={4} key={index}>
               <Card>
                 <CardMedia
                   component="img"
@@ -156,41 +119,42 @@ function PhotoUploader() {
                   image={URL.createObjectURL(file)}
                   alt={`Preview ${index}`}
                 />
-                <IconButton 
-                  size="small" 
-                  onClick={() => removeFile(file)}
-                  sx={{ position: 'absolute', top: 0, right: 0, color: 'white', backgroundColor: 'rgba(0,0,0,0.3)' }}
-                >
-                  <Delete />
-                </IconButton>
+                <CardActions sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {file.name}
+                  </Typography>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => removeFile(file)}
+                    color="error"
+                  >
+                    <Delete />
+                  </IconButton>
+                </CardActions>
+                {uploading && progress[index] !== undefined && (
+                  <LinearProgress variant="determinate" value={progress[index]} />
+                )}
               </Card>
             </Grid>
           ))}
         </Grid>
-        {files.length > 0 && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleUpload}
-            disabled={uploading}
-            startIcon={<CloudUpload />}
-            fullWidth
-            sx={{ mt: 2 }}
-          >
-            {uploading ? 'Subiendo...' : 'Subir fotos'}
-          </Button>
-        )}
-        {uploading && (
-          <Box sx={{ width: '100%', mt: 2 }}>
-            <LinearProgress variant="determinate" value={progress} />
-          </Box>
-        )}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleUpload}
+          disabled={uploading || files.length === 0}
+          startIcon={<CloudUpload />}
+          fullWidth
+          sx={{ mt: 2 }}
+        >
+          {uploading ? 'Subiendo...' : 'Subir fotos'}
+        </Button>
         {message && (
           <Typography color="error" sx={{ mt: 2 }}>
             {message}
           </Typography>
         )}
-      </Box>
+      </Paper>
     </Container>
   );
 }

@@ -1,9 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import Home from './components/Home';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PhotoUploader from './components/PhotoUploader';
-import AuthCallback from './components/AuthCallback';
+import QRCodeGenerator from './components/QRCodeGenerator';
+
 const theme = createTheme({
   palette: {
     primary: {
@@ -62,9 +62,8 @@ function App() {
       <CssBaseline />
       <Router>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/upload" element={<PhotoUploader />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/" element={<PhotoUploader />} />
+          <Route path="/qr" element={<QRCodeGenerator />} />
         </Routes>
       </Router>
     </ThemeProvider>
